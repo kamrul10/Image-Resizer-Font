@@ -5,23 +5,23 @@ import "styled-components/macro";
 import CompressedImages from "./CompressedImages";
 import ModalContent from "./ModalContent";
 import { deleteImage, getImage } from "../request";
-// import { uploadImageCore } from "../request";
+
 
 export default function UploadImage() {
-  const [loadingForUploadImage, setLoadingForUploadImage] =
-    React.useState(false);
+  const [loadingForUploadImage, setLoadingForUploadImage] = React.useState(false);
   const [image, setImage] = React.useState(null);
   const [size, setsize] = React.useState(0);
   const [LoadingResizing, setLoadingResizing] = React.useState(new Map());
   const [selectedImage, setselectedImage] = React.useState(null);
-
   const [images, setImages] = React.useState(new Map());
   const [openModal, setOpenModal] = React.useState(false);
-
+/**
+ * on  file select open the resize  configuration modal
+ * @param {*} event is the input file event
+ */
   async function onFileSelected(event) {
     try {
       setLoadingForUploadImage(true);
-
       const selectedFiles = event.target.files[0];
       setselectedImage(selectedFiles);
       const reader = new FileReader();
@@ -36,30 +36,39 @@ export default function UploadImage() {
       setLoadingForUploadImage(false);
     }
   }
+  /**
+   * when all images are resized remove the resized images
+   * modify  the  images  map along with 
+   * @param {*} mapping 
+   * @param {*} image 
+   */
   const removeFromMap = async (mapping, image) => {
     const reqbody = {
-      original_image: image,
+      original_image: image,// image name that was resized previously befor 5 min ago
     };
-    await deleteImage(reqbody);
+    await deleteImage(reqbody);  //api call  for delete image
     const img = new Map(mapping);
-    console.log("remove image===", image, mapping, img.has(image));
     if (img.has(image)) {
-      console.log("remove image inside===", image);
       img.delete(image);
       setImages(img);
     }
   };
+  /**
+   * set time interval for 5min
+   * add progress bar and timer
+   * @param {*} mapping  all images
+   * @param {*} image marked image
+   */
   const createInterval = (mapping, image) => {
     var timeleft = 300;
-const Time = 300;
-    console.log("image", image);
+    const Time = 300;
     var downloadTimer = setInterval(() => {
       if (timeleft <= 0) {
-        clearInterval(downloadTimer);
-        removeFromMap(mapping, image);
+        clearInterval(downloadTimer); //remove timer
+        removeFromMap(mapping, image); //remove from server
       }
-      const doc = document.getElementById(`progressBar_${image}`);
-      const timer = document.getElementById(`timer_${image}`);
+      const doc = document.getElementById(`progressBar_${image}`);  //get dynamic element
+      const timer = document.getElementById(`timer_${image}`); //get dynamic element
       if (doc) {
         doc.value = Time - timeleft;
       }
@@ -67,15 +76,20 @@ const Time = 300;
         const minutes = Math.floor(timeleft / 60);
         const seconds = Math.floor(timeleft - minutes * 60);
         timer.innerHTML =
-          "Resize Completed Image Removed after " +
+          "Resize Completed, Image will be Removed after " +
           minutes +
           "m " +
           seconds +
           "s";
       }
       timeleft -= 1;
-    }, 1000);
+    }, 1000); 
   };
+  /**
+   * config wise map generate 
+   * and check each config status
+   * @param {*} data 
+   */
   const resizeImage = async (data) => {
     const mapping = new Map(images);
     const configmap = new Map();
@@ -97,14 +111,24 @@ const Time = 300;
     setImages(mapping);
     getStatus(mapping, selectedImage.name);
   };
+  /**
+   * all images  are uploaded to server check
+   * 
+   * @param {*} data 
+   * @param {*} allimages 
+   * @param {*} image 
+   * @returns 
+   */
   const checkComplete = (data, allimages, image) => {
     const cuurentimage = allimages.get(image);
-
     let configs = cuurentimage.config;
-    console.log("configs", configs, configs.keys());
     return Array.from(configs.keys()).every((key) => configs.get(key).resized);
   };
-
+/**
+ * 
+ * @param {*} allimages 
+ * @param {*} image 
+ */
   const getStatus = async (allimages, image) => {
     let interval;
     try {
@@ -112,11 +136,10 @@ const Time = 300;
         const reqbody = {
           original_image: image,
         };
-        const res = await getImage(reqbody);
-
+        const res = await getImage(reqbody);// get update from server
         if (res.data.data.resized_data) {
           const data = res.data.data.resized_data;
-          setsize(res.data.data.file_size);
+          setsize(res.data.data.file_size);//get the total global size uploaded by you
           const cuurentimage = allimages.get(image);
           let configs = cuurentimage.config;
           const mapping = new Map(allimages);
@@ -129,11 +152,9 @@ const Time = 300;
                 //if found in response
                 const specificConfig = configs.get(key);
                 const resizedImage = data[key].url;
-
                 const configmap = new Map(configs);
                 specificConfig.original = resizedImage;
                 specificConfig.resized = true;
-
                 configmap.set(key, specificConfig);
                 mapping.set(image, {
                   image: cuurentimage.image,

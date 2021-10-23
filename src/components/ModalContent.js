@@ -14,10 +14,10 @@ export default function ModalContent({ image, blob, closeModal, resizeImage }) {
       }}
       validate={(values) => {
         const errors = {};
-
         return errors;
       }}
       onSubmit={async (values, { setSubmitting }) => {
+        try{
         setSubmitting(true);
         const reqbody = {
           image: image,
@@ -30,11 +30,15 @@ export default function ModalContent({ image, blob, closeModal, resizeImage }) {
             public: item.Public ? "yes" : "no",
           };
         });
-
-        const res = await uploadImageCore(blob, modify);
+        await uploadImageCore(blob, modify);
         resizeImage(reqbody);
         closeModal();
         setSubmitting(false);
+      }catch(err){
+        console.log(err);
+        alert(err.message)
+        setSubmitting(false);
+      }
       }}
     >
       {(formikBag) => {

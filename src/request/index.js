@@ -33,8 +33,6 @@ export async function uploadImageCore(file, resolutions) {
       return Promise.reject();
     }
   } catch (error) {
-    // console.log(error);
-
     return Promise.reject(error.response.data);
   }
 }
